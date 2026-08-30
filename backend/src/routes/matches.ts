@@ -1,16 +1,31 @@
 import { Router, Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { z } from "zod";
+
 const router = Router();
 const prisma = new PrismaClient();
+
+const matchesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  season: z.string().optional(),
+  team: z.string().optional(),
+  search: z.string().optional(),
+});
+
 // GET /api/matches?page=1&limit=20&season=2023&team=Mumbai Indians&search=final
 router.get("/", async (req: Request, res: Response) => {
+  const parsed = matchesQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const { page, limit, season, team, search } = parsed.data;
+
   try {
-    const page = Math.max(parseInt(req.query.page as string) || 1, 1);
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const skip = (page - 1) * limit;
-    const season = req.query.season as string | undefined;
-    const team = req.query.team as string | undefined;
-    const search = req.query.search as string | undefined;
     const where: Prisma.MatchWhereInput = {};
     if (season) {
       where.season = season;
@@ -57,6 +72,7 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch matches" });
   }
 });
+
 // GET /api/matches/:id — single match with its deliveries
 router.get("/:id", async (req: Request, res: Response) => {
   try {
@@ -77,4 +93,5 @@ router.get("/:id", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch match" });
   }
 });
+
 export default router;

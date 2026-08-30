@@ -21,10 +21,30 @@
 
 import { Router, Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 import { canonicalTeamName } from "../utils/teamNames";
 
 const router = Router();
 const prisma = new PrismaClient();
+
+const playersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(12),
+  search: z.string().trim().optional().default(""),
+  role: z.union([z.enum(["Batter", "Bowler", "All-rounder"]), z.literal("")]).default(""),
+  team: z.string().optional().default(""),
+  sortBy: z.enum(["runs", "wickets", "battingAverage", "strikeRate"]).default("runs"),
+});
+
+const topBatsmenQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  minInnings: z.coerce.number().int().min(0).default(0),
+});
+
+const topBowlersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  minOvers: z.coerce.number().min(0).default(0),
+});
 
 type Role = "Batter" | "Bowler" | "All-rounder";
 
@@ -60,6 +80,23 @@ interface RawPlayerRow {
   team: string | null;
 }
 
+interface TopBatsmanRow {
+  player: string;
+  runs: bigint;
+  ballsFaced: bigint;
+  dismissals: bigint;
+  innings: bigint;
+  team: string | null;
+}
+
+interface TopBowlerRow {
+  player: string;
+  wickets: bigint;
+  legalBalls: bigint;
+  runsConceded: bigint;
+  team: string | null;
+}
+
 /**
  * @swagger
  * /api/players:
@@ -89,16 +126,22 @@ interface RawPlayerRow {
  *     responses:
  *       200:
  *         description: Paginated player list with career stats
+ *       400:
+ *         description: Invalid query parameters
  */
 router.get("/", async (req: Request, res: Response) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 12));
-    const search = ((req.query.search as string) || "").trim();
-    const roleFilter = (req.query.role as string) || "";
-    const teamFilter = (req.query.team as string) || ""; // expects team shortName, e.g. "MI"
-    const sortBy = (req.query.sortBy as string) || "runs";
+  const parsed = playersQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const { page, limit, search, sortBy } = parsed.data;
+  const roleFilter = parsed.data.role;
+  const teamFilter = parsed.data.team; // expects team shortName, e.g. "MI"
 
+  try {
     const rows = await prisma.$queryRaw<RawPlayerRow[]>`
       WITH batting AS (
         SELECT
@@ -250,7 +293,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     const total = players.length;
     const offset = (page - 1) * limit;
-    const paged = players.slice(offset, offset + limit).map(({ teamShort, ...rest }) => rest);
+    const paged = players.slice(offset, offset + limit).map(({ teamShort: _teamShort, ...rest }) => rest);
 
     res.json({
       data: paged,
@@ -279,15 +322,21 @@ router.get("/", async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: List of top batsmen by career runs
+ *       400:
+ *         description: Invalid query parameters
  */
 router.get("/top-batsmen", async (req: Request, res: Response) => {
-  try {
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-    const minInnings = Math.max(0, parseInt(req.query.minInnings as string) || 0);
+  const parsed = topBatsmenQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const { limit, minInnings } = parsed.data;
 
-    const rows = await prisma.$queryRaw<
-      { player: string; runs: bigint; ballsFaced: bigint; dismissals: bigint; innings: bigint; team: string | null }[]
-    >`
+  try {
+    const rows = await prisma.$queryRaw<TopBatsmanRow[]>`
       WITH batting AS (
         SELECT
           batter AS player,
@@ -351,16 +400,22 @@ router.get("/top-batsmen", async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: List of top bowlers by career wickets
+ *       400:
+ *         description: Invalid query parameters
  */
 router.get("/top-bowlers", async (req: Request, res: Response) => {
-  try {
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-    const minOvers = Math.max(0, parseFloat(req.query.minOvers as string) || 0);
-    const minLegalBalls = Math.round(minOvers * 6);
+  const parsed = topBowlersQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: parsed.error.flatten().fieldErrors,
+    });
+  }
+  const { limit, minOvers } = parsed.data;
+  const minLegalBalls = Math.round(minOvers * 6);
 
-    const rows = await prisma.$queryRaw<
-      { player: string; wickets: bigint; legalBalls: bigint; runsConceded: bigint; team: string | null }[]
-    >`
+  try {
+    const rows = await prisma.$queryRaw<TopBowlerRow[]>`
       WITH bowling_ball AS (
         SELECT
           bowler,

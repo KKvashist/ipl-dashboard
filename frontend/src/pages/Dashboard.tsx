@@ -30,8 +30,15 @@ import {
 
 import Sparkline from '@/components/Sparkline';
 import Leaderboard from '@/components/Leaderboard';
+import { useCountUp } from '@/hooks/useCountUp';
 
 type Summary = Awaited<ReturnType<typeof getDashboardSummary>>;
+
+// Renders a number that animates from 0 up to `target` on mount/update.
+function StatValue({ target }: { target: number }) {
+  const animated = useCountUp(target);
+  return <>{animated.toLocaleString()}</>;
+}
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -59,9 +66,9 @@ export default function Dashboard() {
         setStatus('ready');
       })
       .catch((err) => {
-  console.error('Dashboard load failed:', err);
-  setStatus('error');
-});
+        console.error('Dashboard load failed:', err);
+        setStatus('error');
+      });
   };
 
   useEffect(load, []);
@@ -117,32 +124,32 @@ export default function Dashboard() {
             {[
               {
                 label: 'Matches',
-                value: summary.totalMatches,
+                rawValue: summary.totalMatches,
                 color: '#2F7BFF',
               },
               {
                 label: 'Teams',
-                value: summary.totalTeams,
+                rawValue: summary.totalTeams,
                 color: '#52DDA6',
               },
               {
                 label: 'Players',
-                value: summary.totalPlayers,
+                rawValue: summary.totalPlayers,
                 color: '#6FA8FF',
               },
               {
                 label: 'Seasons',
-                value: summary.totalSeasons,
+                rawValue: summary.totalSeasons,
                 color: '#FF8B5E',
               },
               {
                 label: 'Total Runs',
-                value: summary.totalRuns.toLocaleString(),
+                rawValue: summary.totalRuns,
                 color: '#2ECC8F',
               },
               {
                 label: 'Wickets',
-                value: summary.totalWickets.toLocaleString(),
+                rawValue: summary.totalWickets,
                 color: '#FF6B35',
               },
             ].map((s) => (
@@ -168,15 +175,18 @@ export default function Dashboard() {
                 </div>
 
                 <div className="relative font-display text-2xl text-ink-100 mb-2">
-                  {s.value}
+                  <StatValue target={s.rawValue} />
                 </div>
 
                 <div className="relative opacity-80 group-hover:opacity-100 transition-opacity">
                   <Sparkline
-                    data={Array.from(
-                      { length: 10 },
-                      (_, i) => 20 + i * 4 + Math.random() * 25
-                    )}
+                    data={Array.from({ length: 10 }, (_, i) => {
+                      // Deterministic pseudo-variation seeded off the stat's
+                      // own value, so the shape is stable across re-renders
+                      // instead of reshuffling randomly on every render.
+                      const seed = (s.rawValue * (i + 1)) % 97;
+                      return 20 + i * 4 + (seed / 97) * 25;
+                    })}
                     color={s.color}
                   />
                 </div>
