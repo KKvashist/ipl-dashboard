@@ -71,7 +71,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/matches/:id — single match with its deliveries
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id as string, 10);
+    const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid match id" });
     }
