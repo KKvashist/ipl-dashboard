@@ -28,8 +28,14 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Run tests
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t ipl-backend:${{ github.sha }} .
 
   frontend:
     runs-on: ubuntu-latest
@@ -56,3 +62,6 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: http://localhost:4000
+
+      - name: Build Docker image
+        run: docker build -t ipl-frontend:${{ github.sha }} .
