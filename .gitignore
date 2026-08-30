@@ -32,5 +32,3 @@ Thumbs.db
 # Prisma
 **/prisma/dev.db
 
-# Data files (large CSVs, keep out of repo)
-backend/data/*.csv
