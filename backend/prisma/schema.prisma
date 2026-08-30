@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Match {
+  id              Int      @id
+  season          String
+  city            String?
+  date            DateTime
+  matchType       String
+  playerOfMatch   String?
+  venue           String
+  team1           String
+  team2           String
+  tossWinner      String
+  tossDecision    String
+  winner          String?
+  result          String?
+  resultMargin    Int?
+  targetRuns      Int?
+  targetOvers     Float?
+  superOver       String?
+  method          String?
+  umpire1         String?
+  umpire2         String?
+
+  deliveries      Delivery[]
+
+  @@index([season])
+  @@index([team1])
+  @@index([team2])
+}
+
+model Delivery {
+  id              Int      @id @default(autoincrement())
+  matchId         Int
+  inning          Int
+  battingTeam     String
+  bowlingTeam     String
+  over            Int
+  ball            Int
+  batter          String
+  bowler          String
+  nonStriker      String
+  batsmanRuns     Int
+  extraRuns       Int
+  totalRuns       Int
+  extrasType      String?
+  isWicket        Boolean
+  playerDismissed String?
+  dismissalKind   String?
+  fielder         String?
+
+  match           Match    @relation(fields: [matchId], references: [id])
+
+  @@index([matchId])
+  @@index([batter])
+  @@index([bowler])
+}

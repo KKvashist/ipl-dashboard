@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Archivo Black', 'Archivo', sans-serif;
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-navy-950: #070B16;
+  --color-navy-900: #0B1120;
+  --color-navy-850: #101830;
+  --color-navy-800: #15203A;
+  --color-navy-700: #1E2B4A;
+  --color-navy-600: #2B3A5C;
+  --color-navy-500: #3D4E70;
+
+  --color-electric-400: #6FA8FF;
+  --color-electric-500: #2F7BFF;
+  --color-electric-600: #1653C7;
+
+  --color-emerald-400: #52DDA6;
+  --color-emerald-500: #2ECC8F;
+
+  --color-stump-400: #FF8B5E;
+  --color-stump-500: #FF6B35;
+  --color-stump-600: #E5501D;
+
+  --color-ink-100: #F5F7FA;
+  --color-ink-300: #C7CEDB;
+  --color-ink-500: #8891A8;
+  --color-ink-700: #5B657D;
+}
+
+body {
+  background-color: var(--color-navy-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-electric-500);
+  color: var(--color-navy-950);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-navy-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-600);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-navy-500);
+}
+
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(47, 123, 255, 0.10),
+    transparent
+  );
+  animation: scan 3s ease-in-out infinite;
+}
+
+.glass {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stadium-glow {
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 25% -10%,
+      rgba(47, 123, 255, 0.35),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 85% 10%,
+      rgba(46, 204, 143, 0.15),
+      transparent
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanline::after {
+    animation: none;
+  }
+}
