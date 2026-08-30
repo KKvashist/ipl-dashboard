@@ -1,0 +1,152 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const sync_1 = require("csv-parse/sync");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const prisma = new client_1.PrismaClient();
+function toNullable(value) {
+    if (value === undefined || value === null || value === "" || value === "NA") {
+        return null;
+    }
+    return value;
+}
+function toNullableInt(value) {
+    const v = toNullable(value);
+    if (v === null)
+        return null;
+    const n = parseInt(v, 10);
+    return isNaN(n) ? null : n;
+}
+function toNullableFloat(value) {
+    const v = toNullable(value);
+    if (v === null)
+        return null;
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+}
+async function seedMatches() {
+    const filePath = path.join(__dirname, "..", "..", "data", "matches.csv");
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const records = (0, sync_1.parse)(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+    });
+    console.log(`Read ${records.length} rows from matches.csv`);
+    for (const row of records) {
+        await prisma.match.create({
+            data: {
+                id: parseInt(row.id, 10),
+                season: row.season,
+                city: toNullable(row.city),
+                date: new Date(row.date),
+                matchType: row.match_type,
+                playerOfMatch: toNullable(row.player_of_match),
+                venue: row.venue,
+                team1: row.team1,
+                team2: row.team2,
+                tossWinner: row.toss_winner,
+                tossDecision: row.toss_decision,
+                winner: toNullable(row.winner),
+                result: toNullable(row.result),
+                resultMargin: toNullableInt(row.result_margin),
+                targetRuns: toNullableInt(row.target_runs),
+                targetOvers: toNullableFloat(row.target_overs),
+                superOver: toNullable(row.super_over),
+                method: toNullable(row.method),
+                umpire1: toNullable(row.umpire1),
+                umpire2: toNullable(row.umpire2),
+            },
+        });
+    }
+    console.log("Matches seeded successfully.");
+}
+async function seedDeliveries() {
+    const filePath = path.join(__dirname, "..", "..", "data", "deliveries.csv");
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const records = (0, sync_1.parse)(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+    });
+    console.log(`Read ${records.length} rows from deliveries.csv`);
+    const BATCH_SIZE = 1000;
+    let inserted = 0;
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+        const batch = records.slice(i, i + BATCH_SIZE);
+        const data = batch.map((row) => ({
+            matchId: parseInt(row.match_id, 10),
+            inning: parseInt(row.inning, 10),
+            battingTeam: row.batting_team,
+            bowlingTeam: row.bowling_team,
+            over: parseInt(row.over, 10),
+            ball: parseInt(row.ball, 10),
+            batter: row.batter,
+            bowler: row.bowler,
+            nonStriker: row.non_striker,
+            batsmanRuns: parseInt(row.batsman_runs, 10),
+            extraRuns: parseInt(row.extra_runs, 10),
+            totalRuns: parseInt(row.total_runs, 10),
+            extrasType: toNullable(row.extras_type),
+            isWicket: row.is_wicket === "1",
+            playerDismissed: toNullable(row.player_dismissed),
+            dismissalKind: toNullable(row.dismissal_kind),
+            fielder: toNullable(row.fielder),
+        }));
+        await prisma.delivery.createMany({ data });
+        inserted += data.length;
+        console.log(`Inserted ${inserted} / ${records.length} deliveries`);
+    }
+    console.log("Deliveries seeded successfully.");
+}
+async function main() {
+    const existingCount = await prisma.match.count();
+    if (existingCount > 0) {
+        console.log(`Database already has ${existingCount} matches — skipping seed.`);
+        return;
+    }
+    console.log("Starting seed...");
+    await seedMatches();
+    await seedDeliveries();
+    console.log("Seed complete.");
+}
+main()
+    .catch((e) => {
+    console.error(e);
+    process.exit(1);
+})
+    .finally(async () => {
+    await prisma.$disconnect();
+});

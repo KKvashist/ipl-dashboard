@@ -27,7 +27,7 @@ function toNullableFloat(value: string): number | null {
 }
 
 async function seedMatches() {
-  const filePath = path.join(__dirname, "..", "data", "matches.csv");
+  const filePath = path.join(__dirname, "..", "..", "data", "matches.csv");
   const fileContent = fs.readFileSync(filePath, "utf-8");
   const records: any[] = parse(fileContent, {
     columns: true,
@@ -67,7 +67,7 @@ async function seedMatches() {
 }
 
 async function seedDeliveries() {
-  const filePath = path.join(__dirname, "..", "data", "deliveries.csv");
+  const filePath = path.join(__dirname, "..", "..", "data", "deliveries.csv");
   const fileContent = fs.readFileSync(filePath, "utf-8");
   const records: any[] = parse(fileContent, {
     columns: true,
@@ -121,6 +121,7 @@ async function main() {
   await seedDeliveries();
   console.log("Seed complete.");
 }
+
 main()
   .catch((e) => {
     console.error(e);

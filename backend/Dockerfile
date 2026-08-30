@@ -27,6 +27,7 @@ RUN npm install --omit=dev
 COPY --from=builder /app/prisma ./prisma
 RUN npx prisma generate
 
+COPY --from=builder /app/data ./data
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 4000
