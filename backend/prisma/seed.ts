@@ -110,12 +110,17 @@ async function seedDeliveries() {
 }
 
 async function main() {
+  const existingCount = await prisma.match.count();
+  if (existingCount > 0) {
+    console.log(`Database already has ${existingCount} matches — skipping seed.`);
+    return;
+  }
+
   console.log("Starting seed...");
   await seedMatches();
   await seedDeliveries();
   console.log("Seed complete.");
 }
-
 main()
   .catch((e) => {
     console.error(e);
