@@ -51,7 +51,11 @@ app.use("/api/teams", teamsRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/season-trend", seasonTrendRouter);
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-  console.log(`API docs available at http://localhost:${PORT}/api-docs`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend running on http://localhost:${PORT}`);
+    console.log(`API docs available at http://localhost:${PORT}/api-docs`);
+  });
+}
+
+export default app;
