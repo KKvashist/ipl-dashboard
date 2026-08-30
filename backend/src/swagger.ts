@@ -16,10 +16,14 @@ const options: swaggerJsdoc.Options = {
         "REST API serving IPL match, player, team, and season statistics " +
         "aggregated from ball-by-ball delivery data (1,095 matches, 260,920 deliveries).",
     },
-    servers: [
+        servers: [
       {
         url: "http://localhost:4000",
         description: "Local development server",
+      },
+      {
+        url: "https://ipl-dashboard-production-4eee.up.railway.app",
+        description: "Production (Railway)",
       },
     ],
     tags: [
