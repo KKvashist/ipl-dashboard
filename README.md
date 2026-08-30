@@ -144,7 +144,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push/PR:
 The application is deployed on Railway as three services within one project: frontend, backend, and a managed PostgreSQL database.
 
 - **Frontend:** https://modest-light-production.up.railway.app
-- **Backend API:** _(add your backend's Railway domain here, e.g. https://ipl-dashboard-production-XXXX.up.railway.app)_
+- **Backend API:** https://ipl-dashboard-production-4eee.up.railway.app
 
 Both services auto-deploy from the `main` branch via Railway's GitHub integration.
 
