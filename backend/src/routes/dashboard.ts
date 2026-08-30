@@ -76,6 +76,8 @@ interface TopWicketTakerRow {
  *               properties:
  *                 totalMatches: { type: integer, example: 1095 }
  *                 totalSeasons: { type: integer, example: 18 }
+ *                 totalTeams: { type: integer, example: 15 }
+ *                 totalPlayers: { type: integer, example: 650 }
  *                 totalRuns: { type: integer, example: 297000 }
  *                 totalWickets: { type: integer, example: 11800 }
  *                 totalSixes: { type: integer, example: 15200 }
@@ -118,6 +120,26 @@ router.get("/summary", async (req: Request, res: Response) => {
 
     const seasonGroups = await prisma.match.groupBy({ by: ["season"] });
     const totalSeasons = seasonGroups.length;
+
+    const teamMatches = await prisma.match.findMany({
+      select: { team1: true, team2: true },
+    });
+    const teamSet = new Set<string>();
+    for (const m of teamMatches) {
+      if (m.team1) teamSet.add(canonicalTeamName(m.team1));
+      if (m.team2) teamSet.add(canonicalTeamName(m.team2));
+    }
+    const totalTeams = teamSet.size;
+
+    const [playerCountRow] = await prisma.$queryRaw<{ totalPlayers: bigint }[]>`
+      SELECT COUNT(DISTINCT player)::bigint AS "totalPlayers"
+      FROM (
+        SELECT batter AS player FROM "Delivery" WHERE batter IS NOT NULL
+        UNION
+        SELECT bowler AS player FROM "Delivery" WHERE bowler IS NOT NULL
+      ) all_players
+    `;
+    const totalPlayers = Number(playerCountRow?.totalPlayers ?? 0);
 
     const [totals] = await prisma.$queryRaw<DeliveryTotalsRow[]>`
       SELECT
@@ -222,6 +244,8 @@ router.get("/summary", async (req: Request, res: Response) => {
     res.json({
       totalMatches,
       totalSeasons,
+      totalTeams,
+      totalPlayers,
       totalRuns: Number(totals?.totalRuns ?? 0),
       totalWickets: Number(totals?.totalWickets ?? 0),
       totalSixes: Number(totals?.totalSixes ?? 0),
